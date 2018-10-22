@@ -1,0 +1,155 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+% This is a simple template for a LaTeX document using the "article" class.
+% See "book", "report", "letter" for other types of document.
+
+\documentclass[11pt]{article} % use larger type; default would be 10pt
+
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{letterpaper} % or letterpaper (US) or a5paper or....
+\geometry{margin=1in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+%\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+%\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+%\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% END Article customizations
+
+
+%%% The "real" document content comes below...
+
+\title{LCD tutorial}
+\author{}
+\date{} % Activate to display a given date or no date (if empty),
+         % otherwise the current date is printed 
+
+\begin{document}
+\maketitle
+
+%\begin{quote}
+%Wise quote here.\\ \hbox{}\hfil -- {\em A Wise One}
+%\end{quote}
+
+\section{Introduction}
+
+You read correctly. In this lab, we're going to combine most everything we have done so far (and add a couple of new bits) to build a basic, but functioning greenhouse. The greenhouse will have a heating system designed and implemented by you, temperature control and temperature monitoring, data display, and a stylish, Scandinavian design.
+
+\subsection{Objectives}
+
+Upon successful completion of this lab, the student will be able to:
+\begin{itemize}
+\item Write data to an LCD screen.
+\end{itemize}
+
+\section{Pre-lab}
+\subsection{Background materials}
+
+Before coming to lab, the student should review the following materials:
+
+\begin{itemize}
+%\item \emph{Humidity sensor.} TBD.
+%\item \emph{Comparator.} TBD. Video.
+\item {\bf Each student must complete the pre-lab worksheet (posted separately) and turn it in on the Tuesday before lab.}
+\end{itemize}
+
+
+In addition to the materials each team already has, you will be provided the following:
+\begin{itemize}
+\item A 16x2 LCD (https://www.sparkfun.com/products/9395)
+\item An Arduino Ethernet shield,
+\item A micro-SD card, for which someone on your team will need to put down a \$10 deposit,
+\item An additional temperature sensor,
+\item 33$\Omega$/20W power resistors,
+%\item A humidity sensor,
+%\item A comparator,
+\item A ``Socker'' greenhouse from IKEA, and
+\item A small orange tree or \emph{Ficus} seedling.
+\end{itemize}
+
+\subsection{Liquid Crystal Display}
+
+Your first task is to learn how to write information to a small LCD screen. Do the LCD tutorial provided separately. This writes ``Hello, World!'' to the LCD and prints out the seconds since the program has been running (there's that pesky \emph{millis()} again). The potentiometer is acting as a variable voltage divider that controls the screen contrast -- adjust it until you can easily read the display -- if you can't see the screen, it's best to disconnect the power and ask an instructor to check your circuit.\footnote{Your professor put his in backwards for at least a minute and it still works, so the LCD's are at least somewhat supergenius-proof.}
+
+Note that writing to the LCD isn't quite as seamless as writing to a computer screen, where all of the low-level functions are taken care of for you. For the LCD, you have to first tell the program where to start writing as an [x,y] pair, then write a string of characters (where the LCD library conveniently converts numbers to strings for you). If your string of characters is too long (try writing, ``Hello, Super Genius''), you simply lose the extra characters.
+
+The program makes use of the \emph{LiquidCrystal.h} library. The library has several other functions, such as scrolling the text, or the ability to make custom characters, on the off-chance you're inspired to write funny letters like \ae, \o, or \aa.\footnote{In Danish, \ae, \o, or \aa\ are not just letters with accents, but actually separate letters that come at the \emph{end} of the alphabet. Thus \emph{al} (`all') comes near the beginning of the dictionary, but \emph{\aa l} (`eel') comes near the end. it's mind-boggling.} You are encouraged to dig through some of the example codes and libraries in your free time.
+
+\subsection{Putting it all together}
+
+You will now build a functioning greenhouse. At a minimum, your greenhouse must:
+\begin{itemize}
+\item Have a user-changeable set-point between -10C andn 50C.
+\item Measure and record both the inside and outside temperatures.
+\item Measure and record the ambient humidty.
+\item Have heating control with a 1C hysteresis band, as in the previous lab.
+\item Heating will be accomplished using 33$\Omega$/20W power resistors. These have mounting brackets, and your professor will provide mounts.
+\item You must limit the total current to the heaters to $<$1.5A. The power supply and voltage regulators are rated to 2A, but we'll leave a little safety factor.
+\item Have all sensors mounted securely and not haphazardly. You may tape signal wires out of the way, but you must 3D print the sensor mounts.
+\item Write the interior and exterior temperatures, the current set-point, the humidity, and a flag for when the heater is on to a file once every five seconds. The temperatures must be in degrees C; the humidty in \%RH.
+\item Write the interior and exterior temperatures, the current set-point, the humidity, and a flag for when the heater is on to the LCD. You will almost, but not quite, be running out of pins on your Arduino. \emph{If you use pins 0 and 1 for I/O, you cannot start a serial monitor, as serial communications take place on those pins.} Note that you can declare two of the \emph{analog} pins to act as digital pins simply by addressing them as `A0', `A1', etc.
+\end{itemize}
+
+After you construct your greenhouse, start it running. Adjust the set-point up and down to check the functionality. After you've checked that it works properly, show your system to an instructor.
+
+\clearpage
+\pagebreak
+\section{Lab worksheet}
+{\bf To be turned in after data processing. Due the Tuesday after lab at the latest.} Turn in one sheet per team.
+\emph{Answers with incomplete or incorrect units will be marked as incorrect.}
+
+\begin{enumerate}
+\item Instructor sign-off for temperature graph.
+\vspace{1in}
+\item Instructor sign-off for working greenhouse.
+\vspace{1in}
+\item What values for $Q$, $K$, and $C$ did you determine from your simulations?
+\vspace{1in}
+\item Attach graphs that show comparisons between experimental and simulated temperatures. At a minimum, you should have one graph that shows the entire simulation period, plus two ``magnified views'' for the step-up and step-down inputs. Comment on discrepencies.
+\vspace{1in}
+\end{enumerate}
+
+\clearpage
+\pagebreak
+\section{Pre-lab}
+{\bf To be turned in the Tuesday before lab.} 
+Completed individually, but you are welcome to talk to others about the material.
+\begin{enumerate}
+\item If you write 20 bytes af data to a 2GB SD card every 5 seconds, how many days worth of data can you collect before running out of space?
+\vspace{1in}
+\item What does ``FAT'' stand for in ``FAT32''?
+\vspace{1in}
+\item What pins does the Arduino Ethernet shield tie up for its own, nefarious purposes?
+\vspace{1in}
+\item What is the maximum current that the Arduino's 5V pin (usually called ``VCC'' on technical pages) can safely source?
+\vspace{1in}
+\item Draw a functional diagram for the completed greenhouse. Include both power and data connections for each component. Use solid red lines for power, solid blue lines for analog connections, and dashed blue lines for digital connections.\footnote{If for some reason you don't want to use color, use double solid lines for power.} For each of the power connections, determine the current flowing through each line. Use calculations or consult data sheets as necessary.
+\end{enumerate}
+
+
+\end{document}
+

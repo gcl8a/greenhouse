@@ -1,0 +1,91 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+% This is a simple template for a LaTeX document using the "article" class.
+% See "book", "report", "letter" for other types of document.
+
+\documentclass[11pt]{article} % use larger type; default would be 10pt
+
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{letterpaper} % or letterpaper (US) or a5paper or....
+\geometry{margin=1in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+\usepackage{hyperref}
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+%\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+%\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+%\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% END Article customizations
+
+%%% The "real" document content comes below...
+
+\title{Temperature control in a greenhouse}
+\author{}
+\date{} % Activate to display a given date or no date (if empty),
+         % otherwise the current date is printed 
+
+\begin{document}
+\maketitle
+
+%\begin{quote}
+%Wise quote here.\\ \hbox{}\hfil -- {\em A Wise One}
+%\end{quote}
+
+Your challenge is to implement a heating and cooling system for your greenhouse. Your heating system will compare the actual temperature to a set-point, and turn on the heat if it gets too cold. If it gets too hot, a servo motor will open the top lid to promote passive cooling.
+
+\begin{enumerate}
+\item Draw a state diagram that captures the following behavior:
+\begin{itemize}
+\item Periodically (upon expiration of a timer), the temperature and setpoint are read and compared.
+\item When the temperature drops below a minimum (heating) setpoint, the heater turns on.
+\item When the  temperature rises above the setpoint, the heater turns off.
+\item When the temperature rises above a maximum (cooling) setpoint, the lid opens.
+\item When the  temperature falls below the setpoint, the lid closes.
+\end{itemize}
+Use the state diagram to help you write your control code. Be sure to create and use classes to your advantage (e.g., make a class for the AD22100 sensor).
+\item You will use the \href{http://www.analog.com/media/en/technical-documentation/data-sheets/AD22100.pdf}{\underline{AD22100 temperature sensor}} for measuring both the inside and outside temperatures. You will want to mount both in ways that they won’t be bumped around. The interior sensor will need to be soldered to a small protoboard, which can then be attached to the wall of the greenhouse.
+\item You will use a 24V power supply to \emph{independently} supply the heating circuit. You will be given 33$\Omega$ power resistors to arrange as you best can to produce maximum heat without exceeding 2A. {\bf Do not make any connections between the 24V circuit and the Arduino system!} Not even ground. What device will you use to control the relatively large power for the heaters?
+\item You will use a servo motor to open and close the lid. I will provide you with a rod of the right length; you will 3d print a mount for the servo and a connector for the rod to the lid.
+%\item Draw a block diagram of the system. Show how components connect to each other and the “nature” of that connection (e.g., “5V logic”, “24V power”, etc.
+\item Before you start, draw a complete schematic of your proposed system using the components you have used up to this point. {\bf Label the connections between components with the voltage and current limits.} For example, The connection from the power supply to the Arduino would have something like, ``$V<12V$'' (the Arduino's limits), and, ``$I < 2A$'' (the power supply's limits).Show the schematic to an instructor before you plug anything in (you may start building the circuit -- just don’t fire it up until someone looks it over).
+\item Add code to print both the setpoints and the current temperature to the serial monitor. Set the timer so that the sensors are read every 5 seconds. You may \emph{not} use \verb|delay()|.
+\end{enumerate}
+
+\subsection*{Hysteresis}
+
+The system you developed in the previous section still has a minor flaw, namely that noise in the temperature sensing can lead to the relay switching on and off rapidly. In a full-sized heating system (e.g., a residential furnace), such \emph{short-cycling} can lead to unnecessary wear and tear on the system; in ours, it could theoretically lead to premature failure of the relay. It's only a \$1 relay, but still, we'd like to avoid the behavior.
+
+As described in the reading, one way to combat this is to use \emph{hysteresis}, or memory, which allows us to change our behavior based on past events. For the system at hand, you will add a variable that raises or lowers the nominal set-point, depending on whether we've received a call for heat or cooling. 
+
+\begin{enumerate}
+\item Edit your state diagram to include a hysteresis band.
+\item Implement a 1C hysteresis band. Make the band ``below'' the set-points. That is, the heater should come on when the temperature drops to 1C below set-point, and turn off when set-point is reached. Be sure to update your state transition diagram, which will make the programming task almost trivial.
+\end{enumerate}
+
+\end{document}
+
+\clearpage

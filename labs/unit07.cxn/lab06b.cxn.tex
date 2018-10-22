@@ -1,0 +1,334 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+% This is a simple template for a LaTeX document using the "article" class.
+% See "book", "report", "letter" for other types of document.
+
+\documentclass[11pt]{article} % use larger type; default would be 10pt
+
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% Examples of Article customizations
+% These packages are optional, depending whether you want the features they provide.
+% See the LaTeX Companion or other references for full information.
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{letterpaper} % or letterpaper (US) or a5paper or....
+\geometry{margin=1in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+%   read geometry.pdf for detailed page layout information
+
+\usepackage{graphicx} % support the \includegraphics command and options
+\usepackage{hyperref}
+
+\usepackage[parfill]{parskip} % Activate to begin paragraphs with an empty line rather than an indent
+
+%%% PACKAGES
+%\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+%\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+%\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% END Article customizations
+
+
+%%% The "real" document content comes below...
+
+\title{Internet Connectivity}
+\author{}
+\date{} % Activate to display a given date or no date (if empty),
+         % otherwise the current date is printed 
+
+\begin{document}
+\maketitle
+
+%\begin{quote}
+%Wise quote here.\\ \hbox{}\hfil -- {\em A Wise One}
+%\end{quote}
+
+\section*{Introduction}
+
+With the explosion of computing power and connectivity, the Internet has become a primary means of storing, processing, and delivering data. Cloud computing, social networks, search engines, the ``Internet of Things'' -- each of these require sharing and storage of information, some of it in large quantities (so-called “big data”). This document lays out the fundamentals of connecting a microcontroller to an online database system.
+
+The flow of data will happen in several steps, and tutorials and sample code will be provided to help you understand each piece of the puzzle. You’ll start with simple, ``Hello, world!'' applications and work up to a website that displays key statistics of your system (eg, temperatures) and allows you to \emph{control} your greenhouses from the Internet.
+
+\subsection*{Objectives}
+
+Upon successful completion of this lab, the student will be able to:
+\begin{itemize}
+\item Use a microcontroller to invoke scripts for retrieving data from a database,
+\item Use a microcontroller to invoke scripts for storing data in a database,
+\item Transfer data (bi-directionally) between an Arduino and a web server, and
+\item Implement a simple web interface for setting control parameters.
+\end{itemize}
+
+\subsection*{Preparation}
+\begin{itemize}
+\item Show up.
+\end{itemize}
+
+\section*{Communication from a microcontroller}
+
+Each group will be provided the following:
+\begin{itemize}
+\item An \href{https://www.sparkfun.com/products/13678}{\underline{ESP8266 WiFi module}} from SparkFun. In the interest of full disclosure, this is the first time the class will use the ESP8266. In previous editions we’ve used the CC3000 from Adafruit, which was the beginning of the end of my patronage thereof.\footnote{Gory details provided upon request.} The ESP8266 is a popular chip, but comes with it’s own quirks and mediocre libraries. Your instructor has re-written some of the libraries, but there can always be unforeseen issues -- your patience is appreciated.
+\end{itemize}
+
+The ESP8266 communicates by means of a UART -- a “serial” link on your microcontroller. To avoid having to rely on the Software Serial library, it makes sense to switch to a more powerful chip that has more memory and better communication options, so we’ll switch to the  \href{https://www.sparkfun.com/products/13664}{\underline{SAMD21 mini}} from SparkFun. An added benefit is that both the SAMD21 and the ESP8266 are 3.3V systems, so no level shifting will be needed.
+
+\subsection*{Setting up the Arduino IDE}
+
+The first thing you’ll need to do is set up your Arduino environment to work with the SAMD21.
+
+\subsubsection*{Procedure}
+
+\begin{enumerate}
+\item Point you browser to the \href{https://learn.sparkfun.com/tutorials/samd21-minidev-breakout-hookup-guide}{\underline{SAMD21 Hookup Guide}} and follow the instructions there. After you complete the “Setting Up Arduino” section, do the Analog Input and Ouput example sketch: Remember when we talked about PWM? This chip has a built-in \emph{digital to analog converter}, which allows you to make true, variable voltages, not just simulate them with PWM.
+\item You may have noticed that uploading files takes a \emph{long} time with this chip. That is because the default bootloader isn’t a very good one. Your instructor has found a better bootloader, which he can load on there with some special hardware. If you want a faster upload, come see him when he has a free moment (ha!) and he’ll load the new one on.
+\end{enumerate}
+
+\subsection*{Basic connectivity}
+The next thing to do is make sure that you can connect the SAMD21 to the Internet. In this case, you’ll communicate with the WiFi module using ``raw’’ \verb|AT| commands, which constitute an API for communicating with the module. There are many \verb|AT| commands one can send to the chip, but we’ll only need a few to accomplish what we want to do. For most commands, there is a response, which may be as simple as acknowledging the command with an \verb|OK|  or as complex as returning a webpage response. Some common examples are:
+
+\begin{table}[htp]
+\begin{center}
+\begin{tabular}{|c|c|c|}
+Command & Response & Action\\
+\hline
+AT & OK & attention \\
+AT+RST & OK & reset \\
+AT+CWLAP & list of WiFi networks, then OK & list access points
+\end{tabular}
+\end{center}
+\caption{A small sampling of AT commands.}
+\label{default}
+\end{table}%
+
+You can find a fuller list of \verb|AT| commands \href{http://www.pridopia.co.uk/pi-doc/ESP8266ATCommandsSet.pdf}{\underline{here}} and a more detailed reference \href{https://www.espressif.com/sites/default/files/documentation/4a-esp8266_at_instruction_set_en.pdf}{\underline{here}}. There’s also a summary on the ESP8266 pinout diagram linked above.
+
+\subsubsection*{Procedure}
+
+\begin{enumerate}
+\item Consult the pinout diagrams for the \href{https://cdn.sparkfun.com/assets/learn_tutorials/4/5/4/graphicalDatasheet-Mini.pdf}{\underline{SAMD21}} and the \href{https://cdn.sparkfun.com/datasheets/Wireless/WiFi/ESP8266ModuleV1.pdf}{\underline{ESP8266}} and make the following connections:
+\begin{itemize}
+\item Connect VCC on the SAMD21 to VCC and CH\_PD on the ESP. VCC in both cases is 3.3V. {\bf Do not connect anything to Vin (RAW) on the SAMD21 board} -- that is 5V. CH\_PD is just the chip enable pin, which must be HIGH for the chip to operate.
+\item Connect GND to GND.
+\item Connect RX on each board to TX on the other.
+\end{itemize}
+N.b., you’ll need a pin “spreader” to be able to fit the WiFi module into a breadboard. Luckily, I have some.
+\item Download \verb|ESP8266_Serial_Passthrough.ino| from collab, store it in a directory in your sketchbook, and load it into the SAMD21 chip. All this program does is pipe text from the SerialMonitor (\verb|SerialUSB| on the SAMD21 chip) to the ESP and vice versa.
+\item Open the SerialMonitor and verify that it is set to send both a carriage return (CR) and newline (NL) with each entry (there’s a drop down box near the bottom).
+\item Type \verb|AT| in the SerialMonitor. You should see a response, “OK”. If not, check your wiring.
+\item Type \verb|AT+CWMODE=1| to set your WiFi module to station mode.
+\item In order to connect to the \verb|wahoo| network, we’ll need to register your chip’s MAC address with UVa. Before you do that, however, enter the following command:
+
+\begin{verbatim}
+    AT+CWLAP
+\end{verbatim}
+
+You should see a list of possible access points, including \verb|Cavalier| and \verb|Welcome_to_UVA_Wireless|. Probably others. Note that \verb|wahoo| is hidden, so you won’t see that particular network.
+\item Consult the list of commands linked above to determine what command is used to get the MAC address of your device. Enter that command, write down the MAC address, and come see your instructor, who will enter the device into UVa’s registry (you could register it, but I’ll likely be here longer than you, so better it’s on my account).
+\item Now find the command to connect to a network (“access point”) and connect to the \verb|wahoo| network. What is your IP address?
+\item Finally, find the option to automatically (re-)connect to a network. This will make your life easier, since the chip will connect by itself on power up -- no waiting for you to tell it to connect.
+\end{enumerate}
+
+\subsection*{The ESP8266 library}
+
+There are a number of libraries out there for interacting with the ESP8266. Your instructor pored over several options over Spring Break, carefully considered the advantages and disadvantage of each, and decided they all mostly stink. So he took the SparkFun library, trimmed it down substantially, and made it work with the SAMD21. You can download the library, \verb|ESP8266_thin|, from collab.
+
+You’ll use the library to manage all of the \verb|AT| commands and their responses -- you only have to call a small set of functions to interact with the AWS server, for example. You’ll start by reading a trivial webpage with your SAMD21 + ESP8266 combo, and work up to calling PHP scripts on the AWS server to insert data into your database. {\bf If you have trouble with any of the tutorials, see an instructor sooner rather than later.} The library is reasonably well tested, but not guaranteed to be flawless.
+\begin{enumerate}
+\item Download the example WebClient code, \verb|ESP8266_WebClient.ino| from collab, store it in its own directory in your sketchbook, and load it onto the SAMD21 chip. The provided code should contact \verb|www.example.com| and spit out the contents of the website (in text format, of course).
+\end{enumerate}
+
+\subsection*{Sending data to a database}
+\label{sec:who.are.you}
+Once you’ve demonstrated basic connectivity, the next step is to send information to a database. You’ll do this by sending commands to the WiFi module that emulate the URLs you have used in the past to invoke PHP scripts. The PHP script will use the GET protocol to parse the data. With the GET protocol, the data are included in the http request string (essentially, the URL) with the following format:
+\begin{verbatim}
+  http://<hostname>/<scriptname>?<variable1>=<value1>&<variable2>=<value2>...
+\end{verbatim}
+The \verb|?| character tells the script that a list of \verb|variable=value| pairs is coming, each separated by the \verb|&| character. An alternative method is to package data first and send it using the POST protocol. This is most often done with large datasets, such as from a web form, or when you need to conceal a password.
+
+\begin{enumerate}
+\item In the WebClient sketch, change the \verb|destServer| to:
+
+\verb|ec2-34-209-142-24.us-west-2.compute.amazonaws.com|
+\item Change the \verb|httpRequest| to 
+
+\verb|GET /~gcl8a/addtoroster.php| 
+
+Add lines in the \verb|ClientDemo()| function to add the following fields to the \verb|GET| statement (n.b., I’ve had hit-and-miss luck with spaces -- best not to use them for this tutorial).
+\begin{itemize}
+\item id = [your computing id]
+\item firstName = [your first name]
+\item lastName = [your last name]
+\item gradYear = [your year of graduation]
+\item favoritePizza = [your favorite pizza]
+\end{itemize}
+Upload the sketch to your Arduino and run it. Unless you tell it not to, the code will still call the server every 15 seconds, but don’t worry! I’ve made your computer id a \verb|PRIMARY KEY|, so it won’t add you over and over.
+\item When complete, point a browser to \href{http://ec2-34-209-142-24.us-west-2.compute.amazonaws.com/~gcl8a/getroster.php}{\underline{this script}} and check if your name is there. If it is, well done. If not, find an instructor.
+\item Repeat the above for each member of your team.
+\end{enumerate}
+
+{\bf Show an instructor that you have entered the data.}
+
+\vspace{0.25in}
+Instructor initials: \rule{2in}{0.4pt}
+\vspace{0.25in}
+
+\subsection*{Debugging PHP scripts}
+
+Debugging PHP scripts is a pain. It’s very easy to make syntax errors -- especially with quotation marks -- and the scripts often don’t fail nicely. For example, you may put a debug \verb|echo| statement early in the script, hoping that will prove your script made it that far, but even if the error is after the \verb|echo|, it usually won’t print. One way to find the offending statement is to comment out the majority of the script and add the statements back line-by-line until you find which statement is causing the problem. If you \verb|ssh| to the server directly (easily done on a Mac; it requires additional software on a Windows machine), things will go much faster because you can edit the script directly instead of re-uploading the file each time you make a change.
+
+One problem that we see frequently is that students don’t know if the problem is in their script or their Arduino sketch. It is quite easy to test a PHP script directly just by using a web browser. Simply point your browser to the script and manually enter all of the fields -- that’s all your Arduino is doing, anyway.
+
+Whenever you have troubles writing to a database, in general, you should first confirm that you have a working PHP script using steps similar to that above before you start worrying about your Arduino sketch.
+
+\subsection*{Sending greenhouse data to a database}
+
+In the end, you will combine your most recent Arduino greenhouse sketch with the WebClient sketch to send data from the integrated system. For now, you can just send dummy data to show that you can communicate with your PHP script.
+
+\begin{enumerate}
+\item Using the \verb|clientDemo()| function as a start, write a function, \verb|SendReadingToDB(...)| that takes \verb|sensor_id| and \verb|value| as arguments and calls the \verb|insert.php| script you made in a previous assignment with the appropriate arguments. To make your lives easier, I’ve overloaded \verb|tcpSendPacket()| to take a \verb|String| as an argument. This allows you to write statements like:
+
+\begin{verbatim}
+float val = 3.14;
+esp8266.tcpSendPacket(String("&value=") + String(val));
+\end{verbatim}
+
+\item Since you don’t have a temperature sensor connected, just set your sketch to periodically call the routine with the \verb|sensor_id| of your inside temperature sensor and a typical value.
+\item Upload the sketch and open the Serial Monitor. Let the sketch run for a minute or two.
+\item Using the \verb|mysql| command line, \verb|SELECT| all of the readings from \verb|sensor_readings| to show that the data were written correctly.
+\end{enumerate}
+
+{\bf Show your working system to an instructor.}
+
+\vspace{0.25in}
+Instructor initials: \rule{2in}{0.4pt}
+\vspace{0.25in}
+
+%\subsection{Storing greenhouse data in a database}
+%
+%Now that you understand how to invoke PHP scripts from your Arduino, it’s time to start writing temperature (and other) data to a database. To do this, you will have to combine elements of your existing greenhouse code and the WebClient code from above. Using the database you created previously, write a sketch that will periodically poll the temperature sensors and send the values to your database. Specifically,
+%
+%\begin{enumerate}
+%\item In the end, you will combine your most recent Arduino greenhouse sketch with the WebClient sketch to send data from the integrated system. For now, you can just send dummy data (22 C is a nice temperature).
+%\item Print the readings to the Serial Monitor so you can verify that the data is correct.
+%\item Upload the sketch and open the Serial Monitor. Let the sketch run for a minute or two.
+%\item Using the \verb|mysql| command line, \verb|SELECT| all of the readings from \verb|sensor_readings| to show that the data was written correctly.
+%\end{enumerate}
+%
+%{\bf Show your working system to an instructor.}
+%
+%\vspace{0.25in}
+%Instructor initials: \rule{2in}{0.4pt}
+%\vspace{0.25in}
+
+\subsection*{Retrieving information from the database}
+
+The last thing we'll do is get data \emph{from} your database and use it in your Arduino sketch. Specifically, you'll make a web page that allows you to control the set-point of your greenhouse remotely. First, let's verify that your Arduino can receive information:
+
+\begin{enumerate}
+\item Edit the WebClient sketch to invoke a PHP script at
+
+\begin{verbatim}
+http://ec2-34-209-142-24.us-west-2.compute.amazonaws.com/~gcl8a/get_readings.php
+\end{verbatim}
+
+a copy of which can be obtained (for later) on the AWS server by typing:
+
+\verb|cp /home/gcl8a/public_html/get_readings.php .|
+
+This script retrieves the last 40 rows of data from HVAC database for my house and echoes it to a web page. (It's not formatted to be pretty, but it has both the value and timestamp for the chosen sensor). It takes as arguments an \verb|id| (14 is the indoor temperature) and a \verb|keyword| (tornbjerg) so that it has very basic security.
+\item Upload your new sketch and open the Serial Monitor. If all went well, you should see the last 40 indoor temperatures at my house (along with a mess of html tags and other data).
+
+If not, see an instructor.
+\end{enumerate}
+
+Once that works, you'll need to make a webpage that accepts user input and stores the value to a database that your Arduino can access. A copy of \verb|changesetpoints.html| has been put in your professor's directory on the AWS server. This page allows the user to enter a desired set-points (for heating and cooling), a keyword for basic security, and sends them to a PHP script to put the set-points in a database. You can get a copy by moving to your \verb|public_html/| directory and typing 
+
+\verb|cp /home/gcl8a/public_html/changesetpoints.html .| 
+
+You'll need to:
+\begin{enumerate}
+\item Create a table called \verb|setpoints| that holds the desired set-points, \verb|SPheat| and \verb|SPcool|. These are different from the recorded set-points in the \verb|sensor_readings| table. Be sure to add an \verb|id| field and a \verb|timestamp| to keep track of when the set-point was updated.
+\item Create a PHP script, \verb|set_setpoints.php|, that accepts the input from the form, creates the appropriate SQL query, and executes it. Note that the form sends data via a \verb|POST| call -- make sure your PHP script uses \verb|_POST| instead of \verb|_GET| when you’re ready to try from the form (but you might want to leave it as a \verb|GET| call for initial debugging).
+\item Create another PHP script, \verb|get_current.php| that reads the \verb|setpoints| table and returns the current set-points, ie, the most recent record.% This script should return the set-point if the time is between 6:00 AM and 8:00 PM; otherwise, it should return the set-point minus the set-back. Look at Figure~\ref{fig:???} to see how to do time comparisons.
+\item Using the WebClient sketch as a template, periodically poll the server, parse the return string, and print the set-point to the Serial Monitor. Note that your PHP script will return much more than the set-points themselves; it will be useful to enclose the set-points in a tag, eg. \verb|<setp>25,35</setp>|. Then you can search each line using the \verb|startsWith()| and \verb|endsWith()| methods in Arduino.
+\end{enumerate}
+
+If all goes well, you should be able to change the set-point from a standard web browser and see the changes printed in the Serial Monitor.
+
+\section*{Putting it all together}
+
+Let's see...you now have an Arduino that monitors and controls the temperature in your greenhouse, and the infrastructure to view and change parameters from a web browser (at the moment, stored data can only be accessed in text form -- we'll add graphics later). It's time to put it all together. Your task is to build a system with the following functionality:
+
+\begin{itemize}
+\item As before, temperature control with a 1C hysteresis band.
+\item A heating set-point and a cooling set-point that can be changed from the Internet. %Note that you should remove the buttons that were previously used for changing the set-point.% Set-back will be controlled by the time: if the current time is between 10pm and 6am, the system will drop the set-point by 2C. There is a PHP function called \verb|localtime()| to get the current time.
+%\item A cooling set-point such that when it gets too hot, the lid will open. You should already have this.% The cooling set-point must also be controlled from the Internet. The cooling set-point does not need a set-back period.
+\item Stores interior and exterior temperatures, current set-point, and power to the heater in a database. Also, add a flag for the position of the lid. Write the data every 30 seconds.
+\item Continue to write temperature and set-point data to the LCD, as before.
+\end{itemize}
+
+\end{document}
+
+\section{Making fancy displays}
+
+{\bf To be discussed in class on Thursday, 3/31.}
+
+The final step in connecting your greenhouses to the internet is to make the data accessible to all of your fans (trust me, this is important!). In this case we'll create a web page that graphs the data using Highcharts, a popular graphing package written in javascript. An example chart, made by your professor to view the temperature data at his house, can be found at \verb|http://128.143.6.188/greg/display_mysql.php?days=2|, which shows the indoor and outdoor temperatures for the last 2 days. It also shows supply and return temperatures and the state of the fan if you click on the appropriate spot in the legend.
+
+The file for creating the page above, with copious annotations, has been put on collab. Your task is to put a copy of this file in your \verb|web| directory and edit it to display data gathered from your greenhouse. You are encouraged to change some of the options to ``customize'' your page, and you can visit \verb|www.highcharts.com| to see all of the crazy things you can do with Highcharts. Bar charts, column charts, line charts, stock charts, pie charts, most any kind of chart is pretty straighforward, so have fun with it!
+
+\clearpage
+\section{Pre-lab}
+\label{sec:pre.lab}
+
+{\bf This is an individual assignment. Due at the beginning of lab.} (See what you are delivering at the bottom of the assignment.)
+
+Each of you have been given an account and a database on the ``TLP Server'', a linux machine physically living in my office and virtually living at \verb|128.143.6.188|. Your login credentials will be given separately. Note that logging in to the machine (your account) is different than logging into the database manager (\verb|phpmyAdmin|). With the latter, you can't do much more than manage your database, but this is the only practical way to do so. When uploading PHP or HTML files, you’ll put them in a \verb|web| subdirectory under your home directory, which is linked to the web server folders. Thus, when uploaded scripts, you only need to store them in \verb|128.143.6.188/<your name>/web/| and they will be accessible to the web server.
+
+\begin{enumerate}
+\item {\bf Create a database.} Login to phpmyadmin by navigating to \verb|128.143.6.188\phpmyadmin| and entering your credentials. You should already have a database with the same name as your email id. If not, click on ``Databases'' and create a new one with the same name as your email id.
+\item {\bf Create a table.} Create a table called ``sensors''. Add three fields:
+\begin{itemize}
+\item \emph{id} of type integer, AUTO\_INCREMENT, PRIMARY KEY,
+\item \emph{name} of type var\_char(32),
+\item \emph{display\_name} of type var\_char(32), and
+\item \emph{units} of type var\_char(32).
+\end{itemize}
+\item {\bf Create a second table.} Create a table called ``sensor\_readings''. Add the following fields:
+\begin{itemize}
+\item \emph{id} of type integer, indexed
+\item \emph{time\_stamp} of type timestamp, default to CURRENT\_TIMESTAMP, and
+\item \emph{value} of type float.
+\end{itemize}
+\item {\bf Insert some data.} 
+\begin{itemize}
+\item Click on ``SQL''. Here you can perform most any SQL statement, and it has convenient templates for performing common operations.\footnote{You have to be careful, though, the default DELETE statement -- if you execute it -- will delete everything in the selected table permanently, and without much warning.}
+\item INSERT two sensors: an inside temperature and an outside temperature. Note that the id should default to AUTO\_INCREMENT, so you'll need to remove references to it in your INSERT statement. You’ll use “display\_name” for your graph later, so make it reasonably descriptive. Click on ``Browse'' to make sure the records were inserted properly. For now, just keep track of which sensor has which id.
+\item INSERT a few readings for each sensor. Note that the time\_stamp should default to the current time on the server, so you'll need to remove references to it in your INSERT statement.
+\item SELECT all of the readings of sensor 1.
+\item Following the format for JOINing tables (in Mark's handout), SELECT all of the readings of sensor 1, such that the results also show the display\_name field.
+\end{itemize}
+\end{enumerate}
+
+Save this last SQL statement! You’ll show it to an instructor upon arrival in lab, which will demonstrate that you have done the prelab and you can write a basic SQL statement.
+
+\vspace{0.25in}
+Instructor initials: \rule{2in}{0.4pt}
+\vspace{0.25in}
+
+\end{document}
+
